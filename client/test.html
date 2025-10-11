@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Secret Chat 测试页面</title>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <!-- 主页发帖界面 -->
+  <div id="homepage" class="page">
+    <div class="page-header">
+      <h2>Secret Chat 主页</h2>
+      <button id="new-post-btn" class="btn-primary">发新帖</button>
+    </div>
+    <div id="posts-list" class="posts-container">
+      <!-- 帖子列表将在这里动态生成 -->
+    </div>
+  </div>
+
+  <!-- 发帖模态框 -->
+  <div id="post-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>发新帖</h2>
+      <input id="post-channel" placeholder="频道名" autocomplete="off">
+      <input id="post-nick" placeholder="昵称" autocomplete="off">
+      <textarea id="post-content" placeholder="帖子内容..." rows="4"></textarea>
+      <div class="file-upload-area">
+        <input type="file" id="post-image" accept="image/*" style="display: none;">
+        <button id="upload-image-btn" class="btn-secondary">📷 添加图片</button>
+        <div id="image-preview" class="image-preview"></div>
+      </div>
+      <div class="modal-buttons">
+        <button id="post-cancel" class="btn-secondary">取消</button>
+        <button id="post-submit" class="btn-primary">发布</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 聊天界面 -->
+  <div id="chat-page" class="page" style="display: none;">
+    <div id="messages">加载中...</div>
+    <div id="input-area">
+      <input id="input" placeholder="输入消息...">
+      <button id="image-btn" title="发送图片">📷</button>
+      <button id="send">发送</button>
+      <button id="switch-channel" title="切换频道">切换</button>
+      <button id="back-home" title="返回主页">🏠</button>
+    </div>
+  </div>
+
+  <!-- 隐藏的文件输入 -->
+  <input type="file" id="image-input" accept="image/*" style="display: none;">
+
+  <script src="main.js"></script>
+</body>
+</html>

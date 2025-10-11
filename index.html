@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Secret Chat</title>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div id="channel-modal" class="modal">
+    <div class="modal-content">
+      <h2>加入频道</h2>
+      <input id="modal-channel" placeholder="频道名" autocomplete="off">
+      <input id="modal-nick" placeholder="昵称" autocomplete="off">
+      <button id="modal-join">进入</button>
+    </div>
+  </div>
+  <!-- 主页发帖界面 -->
+  <div id="homepage" class="page" style="display: none;">
+    <div class="page-header">
+      <h2>Secret Chat 主页</h2>
+      <div class="header-buttons">
+        <button id="settings-btn" class="btn-secondary" title="设置昵称">⚙️</button>
+        <button id="create-channel-btn" class="btn-secondary">创建频道</button>
+        <button id="new-post-btn" class="btn-primary">发新帖</button>
+      </div>
+    </div>
+    
+    <!-- 频道列表 -->
+    <div class="channels-section">
+      <h3>活跃频道</h3>
+      <div id="channels-list" class="channels-container">
+        <!-- 频道列表将在这里动态生成 -->
+      </div>
+    </div>
+    
+    <div id="posts-list" class="posts-container">
+      <!-- 帖子列表将在这里动态生成 -->
+    </div>
+  </div>
+
+  <!-- 设置模态框 -->
+  <div id="settings-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>设置</h2>
+      <div class="setting-item">
+        <label for="global-nickname">全局昵称：</label>
+        <input id="global-nickname" placeholder="输入您的昵称" autocomplete="off">
+        <p class="setting-hint">设置后加入任何频道都会使用这个昵称</p>
+      </div>
+      <div class="modal-buttons">
+        <button id="settings-cancel" class="btn-secondary">取消</button>
+        <button id="settings-save" class="btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 创建频道模态框 -->
+  <div id="create-channel-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>创建聊天频道</h2>
+      <input id="create-channel-name" placeholder="频道名" autocomplete="off">
+      <input id="create-channel-nick" placeholder="您的昵称" autocomplete="off">
+      <textarea id="create-channel-desc" placeholder="频道描述（可选）..." rows="3"></textarea>
+      <div class="modal-buttons">
+        <button id="create-channel-cancel" class="btn-secondary">取消</button>
+        <button id="create-channel-submit" class="btn-primary">创建并进入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 发帖模态框 -->
+  <div id="post-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>发新帖</h2>
+      <input id="post-channel" placeholder="频道名" autocomplete="off">
+      <input id="post-nick" placeholder="昵称" autocomplete="off">
+      <textarea id="post-content" placeholder="帖子内容..." rows="4"></textarea>
+      <div class="file-upload-area">
+        <input type="file" id="post-image" accept="image/*" style="display: none;">
+        <button id="upload-image-btn" class="btn-secondary">📷 添加图片</button>
+        <div id="image-preview" class="image-preview"></div>
+      </div>
+      <div class="modal-buttons">
+        <button id="post-cancel" class="btn-secondary">取消</button>
+        <button id="post-submit" class="btn-primary">发布</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 聊天界面 -->
+  <div id="chat-page" class="page">
+    <div id="messages">加载中...</div>
+    <div id="input-area">
+      <input id="input" placeholder="输入消息...">
+      <button id="image-btn" title="发送图片">📷</button>
+      <button id="send">发送</button>
+      <button id="switch-channel" title="切换频道">切换</button>
+      <button id="back-home" title="返回主页">🏠</button>
+    </div>
+  </div>
+
+  <!-- 隐藏的文件输入 -->
+  <input type="file" id="image-input" accept="image/*" style="display: none;">
+  <script src="main.js"></script>
+</body>
+</html>

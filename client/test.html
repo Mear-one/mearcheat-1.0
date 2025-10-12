@@ -20,7 +20,11 @@
     <div class="channels-section">
       <div class="section-header">
         <h3>所有频道</h3>
-        <button id="refresh-channels-btn" class="btn-refresh" title="刷新频道列表">🔄</button>
+        <div class="header-actions">
+          <span id="server-status" class="server-status" title="服务器连接状态">🔴</span>
+          <button id="sync-data-btn" class="btn-refresh" title="同步数据" onclick="manualSync()">🔄</button>
+          <button id="refresh-channels-btn" class="btn-refresh" title="刷新频道列表">🔄</button>
+        </div>
       </div>
       <div id="channels-list" class="channels-container">
         <!-- 频道列表将在这里动态生成 -->
@@ -60,11 +64,6 @@
       <h2>创建频道</h2>
       <input id="create-channel-name" placeholder="频道名" autocomplete="off">
       <textarea id="create-channel-desc" placeholder="频道描述..." rows="4"></textarea>
-      <div class="file-upload-area">
-        <input type="file" id="create-channel-image" accept="image/*" style="display: none;">
-        <button id="upload-channel-image-btn" class="btn-secondary">📷 添加图片</button>
-        <div id="channel-image-preview" class="image-preview"></div>
-      </div>
       <div class="modal-buttons">
         <button id="create-channel-cancel" class="btn-secondary">取消</button>
         <button id="create-channel-submit" class="btn-primary">创建</button>

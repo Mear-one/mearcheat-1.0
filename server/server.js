@@ -21,6 +21,19 @@ const channelOwners = new Map(); // channel -> owner nick
 const posts = []; // 存储所有帖子
 const MAX_POSTS = 100; // 最大帖子数量
 
+// 添加CORS支持
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 // 静态文件服务（可选，用于测试页面）
 app.use(express.static('.'));
 

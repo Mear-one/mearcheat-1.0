@@ -73,25 +73,25 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #F5F5F5;
-  color: #2C2C2C;
+  background: #1E1E1E;
+  color: #E0E0E0;
 }
 
 #messages {
   flex: 1 1 auto;
   overflow-y: auto;
-  border: 1px solid #D1D1D1;
+  border: 1px solid #444;
   padding: 8px 6px 8px 6px;
-  background: #FFFFFF;
-  color: #2C2C2C;
+  background: #2A2A2A;
+  color: #E0E0E0;
   font-size: 15px;
   box-sizing: border-box;
 }
 
 #input-area {
   display: flex;
-  border-top: 1px solid #D1D1D1;
-  background: #FFFFFF;
+  border-top: 1px solid #444;
+  background: #2A2A2A;
   padding: 8px 6px;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -101,9 +101,9 @@ body {
   flex: 1;
   padding: 6px 8px;
   font-size: 14px;
-  background: #FFFFFF;
-  color: #2C2C2C;
-  border: 1px solid #D1D1D1;
+  background: #323232;
+  color: #E0E0E0;
+  border: 1px solid #555;
   outline: none;
   border-radius: 3px;
   transition: border 0.2s;
@@ -115,17 +115,17 @@ body {
 button {
   width: 64px;
   font-size: 14px;
-  background: #FFFFFF;
-  color: #2C2C2C;
-  border: 1px solid #D1D1D1;
+  background: #3A3A3A;
+  color: #E0E0E0;
+  border: 1px solid #555;
   border-radius: 3px;
   margin-left: 8px;
   cursor: pointer;
   transition: background 0.2s, border 0.2s;
 }
 button:hover {
-  background: #F0F0F0;
-  border: 1.5px solid #B3B3B3;
+  background: #505050;
+  border: 1.5px solid #888;
 }
 
 /* 页面布局 */
@@ -141,14 +141,15 @@ button:hover {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #D1D1D1;
+  background: #2A2A2A;
+  border-bottom: 1px solid #444;
 }
 
 .page-header h2 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+  color: #E0E0E0;
 }
 
 .header-buttons {
@@ -172,9 +173,9 @@ button:hover {
 }
 
 .btn-secondary {
-  background: #FFFFFF;
-  color: #2C2C2C;
-  border: 1px solid #D1D1D1;
+  background: #3A3A3A;
+  color: #E0E0E0;
+  border: 1px solid #555;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
@@ -183,7 +184,7 @@ button:hover {
 }
 
 .btn-secondary:hover {
-  background: #F0F0F0;
+  background: #505050;
 }
 
 .btn-danger {
@@ -577,9 +578,9 @@ button:hover {
 .channels-section {
   flex: 1;
   padding: 16px;
-  background: #FFFFFF;
+  background: #2A2A2A;
   border-radius: 8px;
-  border: 1px solid #D1D1D1;
+  border: 1px solid #444;
   margin: 16px;
 }
 
@@ -606,7 +607,7 @@ button:hover {
 }
 
 .channels-section h3 {
-  color: #2C2C2C;
+  color: #E0E0E0;
   margin: 0;
   font-size: 16px;
   font-weight: 600;
@@ -619,8 +620,8 @@ button:hover {
 }
 
 .channel-item {
-  background: #FFFFFF;
-  border: 1px solid #D1D1D1;
+  background: #323232;
+  border: 1px solid #555;
   border-radius: 6px;
   padding: 12px 16px;
   display: flex;
@@ -633,7 +634,7 @@ button:hover {
 }
 
 .channel-item:hover {
-  background: #F8F8F8;
+  background: #3A3A3A;
   border-color: #1473E6;
   box-shadow: 0 2px 8px rgba(20, 115, 230, 0.1);
 }
@@ -665,13 +666,13 @@ button:hover {
 .channel-description {
   margin-top: 8px;
   padding: 8px;
-  background: #F8F8F8;
+  background: #2A2A2A;
   border-radius: 4px;
-  border: 1px solid #E0E0E0;
+  border: 1px solid #555;
 }
 
 .channel-description .post-content {
-  color: #2C2C2C;
+  color: #E0E0E0;
   font-size: 14px;
   line-height: 1.4;
   margin-bottom: 8px;
@@ -726,15 +727,15 @@ button:hover {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #D1D1D1;
+  background: #2A2A2A;
+  border-bottom: 1px solid #444;
 }
 
 .chat-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #2C2C2C;
+  color: #E0E0E0;
 }
 
 .chat-actions {

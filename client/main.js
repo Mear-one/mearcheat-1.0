@@ -8,7 +8,7 @@ let currentPage = "homepage"; // "homepage" 或 "chat"
 let posts = []; // 存储帖子数据
 let channels = []; // 存储频道数据
 
-// DOM 元素
+// DOM 元素 - 安全获取
 const messagesDiv = document.getElementById("messages");
 const input = document.getElementById("input");
 const sendBtn = document.getElementById("send");
@@ -32,9 +32,7 @@ const createChannelBtn = document.getElementById("create-channel-btn");
 const createChannelModal = document.getElementById("create-channel-modal");
 const createChannelName = document.getElementById("create-channel-name");
 const createChannelDesc = document.getElementById("create-channel-desc");
-const createChannelImage = document.getElementById("create-channel-image");
-const uploadChannelImageBtn = document.getElementById("upload-channel-image-btn");
-const channelImagePreview = document.getElementById("channel-image-preview");
+// 图片功能已删除
 const createChannelCancel = document.getElementById("create-channel-cancel");
 const createChannelSubmit = document.getElementById("create-channel-submit");
 const imageBtn = document.getElementById("image-btn");
@@ -43,7 +41,17 @@ const backHome = document.getElementById("back-home");
 const currentChannel = document.getElementById("current-channel");
 const deleteChannelBtn = document.getElementById("delete-channel-btn");
 
+// 检查元素是否存在，避免错误
+function safeGetElement(id) {
+  const element = document.getElementById(id);
+  if (!element) {
+    console.warn(`Element with id '${id}' not found`);
+  }
+  return element;
+}
+
 function showModal() {
+  if (!modal || !modalChannel || !modalNick) return;
   // 自动填充上次输入
   const lastChannel = localStorage.getItem('sc_last_channel') || '';
   const lastNick = localStorage.getItem('sc_last_nick') || '';
@@ -59,10 +67,11 @@ function showModal() {
   }, 100);
 }
 function hideModal() {
-  modal.style.display = "none";
+  if (modal) modal.style.display = "none";
 }
 
 function log(line) {
+  if (!messagesDiv) return;
   const div = document.createElement("div");
   div.textContent = line;
   messagesDiv.appendChild(div);
@@ -70,16 +79,16 @@ function log(line) {
 }
 
 // 页面切换功能
-function showPage(page) {
+async function showPage(page) {
   currentPage = page;
   if (page === "homepage") {
-    homepage.style.display = "flex";
-    chatPage.style.display = "none";
-    loadPosts(); // 先加载帖子
-    loadChannels(); // 再加载频道
+    if (homepage) homepage.style.display = "flex";
+    if (chatPage) chatPage.style.display = "none";
+    await loadPosts(); // 先加载帖子
+    await loadChannels(); // 再加载频道
   } else if (page === "chat") {
-    homepage.style.display = "none";
-    chatPage.style.display = "flex";
+    if (homepage) homepage.style.display = "none";
+    if (chatPage) chatPage.style.display = "flex";
     updateChatHeader();
   }
 }
@@ -100,21 +109,29 @@ function updateChatHeader() {
 
 // 加载帖子列表
 async function loadPosts() {
+  // 使用阿里云服务器
+  const baseUrl = 'http://47.243.228.16:8080';
+  
   try {
-    // 从服务器获取帖子
-    const response = await fetch('http://47.243.228.16:8080/api/posts');
+    console.log(`尝试连接服务器: ${baseUrl}`);
+    const response = await fetch(`${baseUrl}/api/posts`, {
+      method: 'GET',
+      timeout: 5000
+    });
     if (response.ok) {
       const data = await response.json();
       if (data.success) {
         posts = data.posts;
         renderPosts();
+        console.log(`成功连接到服务器: ${baseUrl}`);
         return;
       }
     }
   } catch (error) {
-    console.log('从服务器获取帖子失败，使用本地存储:', error);
+    console.log(`连接服务器 ${baseUrl} 失败:`, error);
   }
   
+  console.log('服务器连接失败，使用本地存储');
   // 降级到本地存储
   const savedPosts = localStorage.getItem('sc_posts');
   if (savedPosts) {
@@ -125,27 +142,60 @@ async function loadPosts() {
 
 // 加载频道列表
 async function loadChannels() {
+  // 使用阿里云服务器
+  const baseUrl = 'http://47.243.228.16:8080';
+  
   try {
-    const response = await fetch('http://47.243.228.16:8080/api/channels');
+    console.log(`尝试连接服务器获取频道: ${baseUrl}`);
+    const response = await fetch(`${baseUrl}/api/channels`, {
+      method: 'GET',
+      timeout: 5000
+    });
     if (response.ok) {
       const data = await response.json();
       if (data.success) {
         channels = data.channels;
         renderChannels();
+        console.log(`成功从服务器获取频道: ${baseUrl}`);
         return;
       }
     }
   } catch (error) {
-    console.log('从服务器获取频道列表失败:', error);
+    console.log(`连接服务器 ${baseUrl} 获取频道失败:`, error);
   }
   
-  // 如果没有频道，显示空状态
-  channels = [];
+  // 从帖子数据创建频道列表
+  console.log('服务器连接失败，从帖子数据创建频道列表...');
+  const channelMap = new Map();
+  
+  // 遍历所有帖子，找到频道创建帖子
+  posts.forEach(post => {
+    if (post.isChannelCreation) {
+      if (!channelMap.has(post.channel)) {
+        channelMap.set(post.channel, {
+          name: post.channel,
+          userCount: 0, // 默认在线人数为0
+          owner: post.nick
+        });
+      }
+    }
+  });
+  
+  channels = Array.from(channelMap.values());
+  console.log('从帖子创建的频道:', channels);
   renderChannels();
 }
 
 // 渲染频道列表
 function renderChannels() {
+  if (!channelsList) {
+    console.warn('channelsList element not found');
+    return;
+  }
+  
+  console.log('渲染频道列表，频道数量:', channels.length);
+  console.log('帖子数量:', posts.length);
+  
   channelsList.innerHTML = "";
   
   if (channels.length === 0) {
@@ -163,13 +213,14 @@ function renderChannels() {
 function createChannelElement(channel) {
   const div = document.createElement("div");
   div.className = "channel-item";
-  
+
   const globalNick = getGlobalNickname();
   const isOwner = channel.owner === globalNick;
-  
+
   // 查找该频道的描述帖子
   const channelPost = posts.find(post => post.channel === channel.name && post.isChannelCreation);
-  
+  console.log(`频道 ${channel.name} 的帖子:`, channelPost);
+
   div.innerHTML = `
     <div class="channel-info">
       <div class="channel-header">
@@ -184,11 +235,11 @@ function createChannelElement(channel) {
       ` : ''}
     </div>
     <div class="channel-actions">
-      <button class="channel-action-btn" onclick="joinChannelFromList('${channel.name}')" title="加入频道">加入</button>
+      <button class="channel-action-btn" onclick="joinChannelFromList('${channel.name}')" title="加入频道">加入频道</button>
       ${isOwner ? `<button class="channel-action-btn delete" onclick="deleteChannel('${channel.name}')" title="删除频道">删除</button>` : ''}
     </div>
   `;
-  
+
   return div;
 }
 
@@ -210,7 +261,7 @@ function joinChannelFromList(channelName) {
   localStorage.setItem('sc_last_nick', nick);
   
   showPage("chat");
-  messagesDiv.innerHTML = "";
+  if (messagesDiv) messagesDiv.innerHTML = "";
   connect();
 }
 
@@ -242,29 +293,51 @@ async function deleteChannel(channelName) {
         alert(data.message);
         loadChannels(); // 重新加载频道列表
         loadPosts(); // 重新加载帖子列表
+        return;
       }
     } else {
       const error = await response.json();
       alert(error.error || '删除频道失败');
+      return;
     }
   } catch (error) {
-    console.log('删除频道失败:', error);
-    alert('删除频道失败，请检查网络连接');
+    console.log('删除频道失败，尝试本地删除:', error);
+  }
+  
+  // 服务器删除失败，尝试本地删除
+  console.log('服务器删除失败，尝试本地删除');
+    
+    // 本地删除逻辑
+    const channelToDelete = channels.find(ch => ch.name === channelName);
+    if (!channelToDelete) {
+      alert('频道不存在');
+      return;
+    }
+    
+    if (channelToDelete.owner !== globalNick) {
+      alert('只有频道创建者才能删除频道');
+      return;
+    }
+    
+    // 从本地数据中删除相关帖子
+    const originalLength = posts.length;
+    posts = posts.filter(post => post.channel !== channelName);
+    const deletedCount = originalLength - posts.length;
+    
+    // 保存到本地存储
+    localStorage.setItem('sc_posts', JSON.stringify(posts));
+    
+    // 重新加载频道列表
+    await loadChannels();
+    
+    alert(`频道 #${channelName} 已删除，共删除 ${deletedCount} 个帖子`);
   }
 }
 
 // 渲染帖子列表
 function renderPosts() {
-  postsList.innerHTML = "";
-  if (posts.length === 0) {
-    postsList.innerHTML = '<div style="text-align: center; color: #888; padding: 40px;">暂无帖子，快来发第一个帖子吧！</div>';
-    return;
-  }
-  
-  posts.forEach((post, index) => {
-    const postElement = createPostElement(post, index);
-    postsList.appendChild(postElement);
-  });
+  // 帖子现在通过频道描述显示，不需要单独的帖子列表
+  console.log("帖子数据已加载:", posts.length, "个帖子");
 }
 
 // 创建帖子元素
@@ -369,7 +442,7 @@ function joinChannelFromPost(channelName, postNick) {
   localStorage.setItem('sc_last_nick', nick);
   
   showPage("chat");
-  messagesDiv.innerHTML = "";
+  if (messagesDiv) messagesDiv.innerHTML = "";
   connect();
 }
 
@@ -408,9 +481,8 @@ function saveSettings() {
 
 // 显示创建频道模态框
 function showCreateChannelModal() {
+  if (!createChannelModal || !createChannelName || !createChannelDesc) return;
   const globalNick = getGlobalNickname();
-  const lastNick = globalNick || localStorage.getItem('sc_last_nick') || '';
-  createChannelNick.value = lastNick;
   createChannelName.value = '';
   createChannelDesc.value = '';
   createChannelModal.style.display = "flex";
@@ -418,26 +490,35 @@ function showCreateChannelModal() {
 
 // 隐藏创建频道模态框
 function hideCreateChannelModal() {
-  createChannelModal.style.display = "none";
+  if (createChannelModal) createChannelModal.style.display = "none";
 }
 
 // 创建频道
 async function createChannel() {
+  if (!createChannelName || !createChannelDesc) return;
   const channelName = createChannelName.value.trim();
   const description = createChannelDesc.value.trim();
-  const imageFile = createChannelImage.files[0];
-  
+
   if (!channelName || !description) {
     alert("请输入频道名和描述");
     return;
   }
-  
+
   const globalNick = getGlobalNickname();
   if (!globalNick) {
     alert("请先设置全局昵称");
     return;
   }
-  
+
+  // 检查服务器连接
+  const serverStatus = await testServerConnection();
+  if (!serverStatus) {
+    const proceed = confirm('服务器连接失败，频道将只保存在本地。其他设备可能无法看到此频道。是否继续？');
+    if (!proceed) {
+      return;
+    }
+  }
+
   // 创建频道描述帖子
   const post = {
     channel: channelName,
@@ -446,17 +527,8 @@ async function createChannel() {
     image: null,
     isChannelCreation: true
   };
-  
-  if (imageFile) {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      post.image = e.target.result;
-      await saveChannelPost(post, channelName);
-    };
-    reader.readAsDataURL(imageFile);
-  } else {
-    await saveChannelPost(post, channelName);
-  }
+
+  await saveChannelPost(post, channelName);
 }
 
 // 保存频道帖子
@@ -506,8 +578,10 @@ async function saveChannelPost(post, channelName) {
   nick = getGlobalNickname();
   
   showPage("chat");
-  messagesDiv.innerHTML = "";
+  if (messagesDiv) messagesDiv.innerHTML = "";
   connect();
+  
+  alert('频道已创建（本地模式），其他设备可能无法立即看到');
 }
 
 // 查看图片
@@ -621,7 +695,7 @@ function hidePostModal() {
 }
 
 // 处理图片上传
-function handleImageUpload(file, isChannel = false) {
+function handleImageUpload(file) {
   if (!file || !file.type.startsWith('image/')) {
     alert('请选择图片文件');
     return;
@@ -630,11 +704,7 @@ function handleImageUpload(file, isChannel = false) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const imageData = e.target.result;
-    if (isChannel) {
-      channelImagePreview.innerHTML = `<img src="${imageData}">`;
-    } else {
-      sendImage(imageData);
-    }
+    sendImage(imageData);
   };
   reader.readAsDataURL(file);
 }
@@ -665,6 +735,7 @@ function sendImage(imageData) {
 
 // 显示图片消息
 function logImage(sender, imageData) {
+  if (!messagesDiv) return;
   const div = document.createElement("div");
   div.className = "message-container";
   
@@ -801,33 +872,34 @@ function connect() {
   if (!channel || !nick) return;
   if (socket && socket.readyState === WebSocket.OPEN) return;
 
-  messagesDiv.innerHTML = "连接中...";
+  if (messagesDiv) messagesDiv.innerHTML = "连接中...";
   joined = false;
 
-  // 支持本地和云服务器连接
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const wsUrl = isLocal ? "ws://localhost:8080/chat-ws" : "ws://47.243.228.16:8080/chat-ws";
+  // 使用阿里云服务器
+  const wsUrl = "ws://47.243.228.16:8080/chat-ws";
+  console.log(`尝试连接WebSocket服务器: ${wsUrl}`);
   socket = new WebSocket(wsUrl);
 
-  socket.onopen = () => {
-    messagesDiv.innerHTML = "已连接，正在加入频道...";
-    try {
-      socket.send(JSON.stringify({ cmd: "join", channel, nick }));
-    } catch (e) {
-      log("发送 join 失败: " + e.message);
-    }
-
-    if (heartbeatTimer) clearInterval(heartbeatTimer);
-    heartbeatTimer = setInterval(() => {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        try {
-          socket.send(JSON.stringify({ cmd: "ping" }));
-        } catch (e) {
-          console.warn("发送心跳失败:", e);
-        }
+    socket.onopen = () => {
+      console.log(`成功连接到WebSocket服务器: ${wsUrl}`);
+      if (messagesDiv) messagesDiv.innerHTML = "已连接，正在加入频道...";
+      try {
+        socket.send(JSON.stringify({ cmd: "join", channel, nick }));
+      } catch (e) {
+        log("发送 join 失败: " + e.message);
       }
-    }, 20000);
-  };
+
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          try {
+            socket.send(JSON.stringify({ cmd: "ping" }));
+          } catch (e) {
+            console.warn("发送心跳失败:", e);
+          }
+        }
+      }, 20000);
+    };
 
   socket.onmessage = (event) => {
     let msg;
@@ -942,8 +1014,8 @@ function connect() {
   };
 
   socket.onerror = (err) => {
-    console.error("WebSocket 错误:", err);
-    log("[error] 连接出错，请检查网络或证书设置");
+    console.error(`WebSocket 错误 (${wsUrl}):`, err);
+    log(`[error] 连接服务器失败: ${wsUrl}`);
   };
 
   socket.onclose = (ev) => {
@@ -960,6 +1032,7 @@ function connect() {
 }
 
 function sendText() {
+  if (!input) return;
   const text = input.value.trim();
   if (!text) return;
   if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -979,29 +1052,38 @@ function sendText() {
   }
 }
 
-sendBtn.onclick = sendText;
-input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    sendText();
-  }
-});
+if (sendBtn) sendBtn.onclick = sendText;
+if (input) {
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      sendText();
+    }
+  });
+}
 
-switchBtn.onclick = () => {
-  if (socket) {
-    try { socket.close(); } catch (_) {}
-  }
-  showPage("homepage");
-};
+if (switchBtn) {
+  switchBtn.onclick = () => {
+    if (socket) {
+      try { socket.close(); } catch (_) {}
+    }
+    showPage("homepage");
+  };
+}
 
-modalJoin.onclick = tryJoin;
-modalChannel.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") modalNick.focus();
-});
-modalNick.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") tryJoin();
-});
+if (modalJoin) modalJoin.onclick = tryJoin;
+if (modalChannel) {
+  modalChannel.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") modalNick.focus();
+  });
+}
+if (modalNick) {
+  modalNick.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") tryJoin();
+  });
+}
 
 function tryJoin() {
+  if (!modalChannel || !modalNick) return;
   const ch = modalChannel.value.trim();
   const nk = modalNick.value.trim();
   if (!ch || !nk) {
@@ -1013,34 +1095,43 @@ function tryJoin() {
   // 记忆本次输入
   localStorage.setItem('sc_last_channel', ch);
   localStorage.setItem('sc_last_nick', nk);
-  messagesDiv.innerHTML = "";
+  if (messagesDiv) messagesDiv.innerHTML = "";
   hideModal();
   connect();
 }
 
 
-// 事件监听器
-settingsBtn.onclick = showSettingsModal;
-settingsCancel.onclick = hideSettingsModal;
-settingsSave.onclick = saveSettings;
-createChannelBtn.onclick = showCreateChannelModal;
-createChannelCancel.onclick = hideCreateChannelModal;
-createChannelSubmit.onclick = createChannel;
-refreshChannelsBtn.onclick = loadChannels;
-uploadChannelImageBtn.onclick = () => createChannelImage.click();
-createChannelImage.addEventListener('change', (e) => {
-  if (e.target.files[0]) {
-    handleImageUpload(e.target.files[0], true);
-  }
-});
-imageBtn.onclick = () => imageInput.click();
-imageInput.addEventListener('change', (e) => {
-  if (e.target.files[0]) {
-    handleImageUpload(e.target.files[0], false);
-  }
-});
-backHome.onclick = () => showPage("homepage");
-deleteChannelBtn.onclick = () => deleteChannel(channel);
+// 事件监听器 - 安全绑定
+if (settingsBtn) {
+  settingsBtn.onclick = showSettingsModal;
+  console.log("设置按钮绑定成功");
+} else {
+  console.log("设置按钮未找到");
+}
+
+if (createChannelBtn) {
+  createChannelBtn.onclick = showCreateChannelModal;
+  console.log("创建频道按钮绑定成功");
+} else {
+  console.log("创建频道按钮未找到");
+}
+
+if (settingsCancel) settingsCancel.onclick = hideSettingsModal;
+if (settingsSave) settingsSave.onclick = saveSettings;
+if (createChannelCancel) createChannelCancel.onclick = hideCreateChannelModal;
+if (createChannelSubmit) createChannelSubmit.onclick = createChannel;
+if (refreshChannelsBtn) refreshChannelsBtn.onclick = loadChannels;
+// 图片上传功能已删除
+if (imageBtn && imageInput) {
+  imageBtn.onclick = () => imageInput.click();
+  imageInput.addEventListener('change', (e) => {
+    if (e.target.files[0]) {
+      handleImageUpload(e.target.files[0]);
+    }
+  });
+}
+if (backHome) backHome.onclick = () => showPage("homepage");
+if (deleteChannelBtn) deleteChannelBtn.onclick = () => deleteChannel(currentChannelName);
 
 // 强制隐藏模态框
 function forceHideModal() {
@@ -1049,11 +1140,146 @@ function forceHideModal() {
   }
 }
 
+// 数据同步功能
+let syncTimer = null;
+
+function startDataSync() {
+  // 每30秒同步一次数据
+  syncTimer = setInterval(async () => {
+    await syncData();
+  }, 30000);
+  
+  console.log('数据同步已启动，每30秒同步一次');
+}
+
+function stopDataSync() {
+  if (syncTimer) {
+    clearInterval(syncTimer);
+    syncTimer = null;
+    console.log('数据同步已停止');
+  }
+}
+
+async function syncData() {
+  try {
+    console.log('开始同步数据...');
+    
+    // 尝试从服务器获取最新数据
+    const [postsResponse, channelsResponse] = await Promise.allSettled([
+      fetch('http://47.243.228.16:8080/api/posts'),
+      fetch('http://47.243.228.16:8080/api/channels')
+    ]);
+    
+    let dataUpdated = false;
+    
+    // 处理帖子数据
+    if (postsResponse.status === 'fulfilled' && postsResponse.value.ok) {
+      const postsData = await postsResponse.value.json();
+      if (postsData.success && postsData.posts) {
+        const newPosts = postsData.posts;
+        if (JSON.stringify(posts) !== JSON.stringify(newPosts)) {
+          posts = newPosts;
+          localStorage.setItem('sc_posts', JSON.stringify(posts));
+          dataUpdated = true;
+          console.log('帖子数据已同步');
+        }
+      }
+    }
+    
+    // 处理频道数据
+    if (channelsResponse.status === 'fulfilled' && channelsResponse.value.ok) {
+      const channelsData = await channelsResponse.value.json();
+      if (channelsData.success && channelsData.channels) {
+        const newChannels = channelsData.channels;
+        if (JSON.stringify(channels) !== JSON.stringify(newChannels)) {
+          channels = newChannels;
+          dataUpdated = true;
+          console.log('频道数据已同步');
+        }
+      }
+    }
+    
+    // 如果数据有更新，重新渲染
+    if (dataUpdated && currentPage === 'homepage') {
+      await loadChannels();
+      console.log('界面已更新');
+    }
+    
+  } catch (error) {
+    console.log('数据同步失败:', error);
+  }
+}
+
+// 手动同步数据
+async function manualSync() {
+  console.log('手动同步数据...');
+  
+  // 先测试服务器连接
+  const serverStatus = await testServerConnection();
+  if (!serverStatus) {
+    alert('服务器连接失败，无法同步数据。请检查网络连接或服务器状态。');
+    return;
+  }
+  
+  await syncData();
+  alert('数据同步完成');
+}
+
+// 测试服务器连接
+async function testServerConnection() {
+  // 直接连接到远程服务器
+  const baseUrl = 'http://47.243.228.16:8080';
+  
+  try {
+    console.log('测试服务器连接...', baseUrl);
+    const response = await fetch(`${baseUrl}/api/posts`, {
+      method: 'GET',
+      timeout: 5000
+    });
+    
+    if (response.ok) {
+      console.log('服务器连接正常');
+      return true;
+    } else {
+      console.log('服务器响应异常:', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.log('服务器连接失败:', error);
+    return false;
+  }
+}
+
+// 更新服务器状态显示
+async function updateServerStatus() {
+  const statusElement = document.getElementById('server-status');
+  if (!statusElement) return;
+  
+  const isConnected = await testServerConnection();
+  if (isConnected) {
+    statusElement.textContent = '🟢';
+    statusElement.title = '服务器连接正常 (47.243.228.16:8080)';
+  } else {
+    statusElement.textContent = '🔴';
+    statusElement.title = '服务器连接失败 (47.243.228.16:8080)';
+  }
+}
+
 // 启动时显示主页并加载数据
 // 确保页面显示正确
-setTimeout(() => {
+setTimeout(async () => {
   forceHideModal(); // 强制隐藏模态框
-  showPage("homepage");
+  await showPage("homepage");
+  // 确保频道列表正确显示
+  if (channelsList) {
+    channelsList.innerHTML = '<div class="no-channels">正在加载频道...</div>';
+  }
+  
+  // 启动数据同步
+  startDataSync();
+  
+  // 更新服务器状态
+  updateServerStatus();
 }, 100);
 
 // 关闭面板时清理连接

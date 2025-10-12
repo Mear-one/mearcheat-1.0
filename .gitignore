@@ -1,0 +1,7 @@
+# Ignore zip files and common temp files
+*.zip
+*.log
+node_modules/
+.DS_Store
+thumbs.db
+.env

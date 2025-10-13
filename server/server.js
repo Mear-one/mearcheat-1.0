@@ -73,7 +73,7 @@ app.get('/api/posts', (req, res) => {
 
 // 发布新帖子
 app.post('/api/posts', (req, res) => {
-  const { channel, nick, content, image, isChannelCreation } = req.body;
+  const { channel, nick, content, image, isChannelCreation, password } = req.body;
   
   if (!channel || !nick || !content) {
     return res.status(400).json({
@@ -87,7 +87,8 @@ app.post('/api/posts', (req, res) => {
     nick,
     content,
     image: image || null,
-    isChannelCreation: isChannelCreation || false
+    isChannelCreation: isChannelCreation || false,
+    password: password || null
   });
   
   // 如果是频道创建帖子，记录频道创建者
@@ -125,10 +126,17 @@ app.get('/api/channels', (req, res) => {
   
   const channelList = Array.from(allChannels).map(channelName => {
     const onlineUsers = channels.get(channelName);
+    // 查找频道创建帖子以获取密码信息
+    const channelPost = posts.find(post => 
+      post.channel === channelName && post.isChannelCreation
+    );
+    
     return {
       name: channelName,
       userCount: onlineUsers ? onlineUsers.size : 0,
-      owner: channelOwners.get(channelName) || null
+      owner: channelOwners.get(channelName) || null,
+      hasPassword: !!channelPost?.password,
+      password: channelPost?.password || null
     };
   });
   

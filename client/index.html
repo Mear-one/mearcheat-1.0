@@ -6,35 +6,40 @@
   <link rel="stylesheet" href="index.css">
 </head>
 <body>
-  <div id="channel-modal" class="modal" style="display: none !important;">
-    <div class="modal-content">
-      <h2>加入频道</h2>
-      <input id="modal-channel" placeholder="频道名" autocomplete="off">
-      <input id="modal-nick" placeholder="昵称" autocomplete="off">
-      <button id="modal-join">进入</button>
-    </div>
-  </div>
-  <!-- 主页发帖界面 -->
-  <div id="homepage" class="page" style="display: none;">
+  <!-- 主页频道界面 -->
+  <div id="homepage" class="page">
     <div class="page-header">
-      <h2>Secret Chat 主页</h2>
+      <h2>Secret Chat</h2>
       <div class="header-buttons">
-        <button id="settings-btn" class="btn-secondary" title="设置昵称">⚙️</button>
-        <button id="create-channel-btn" class="btn-secondary">创建频道</button>
-        <button id="new-post-btn" class="btn-primary">发新帖</button>
+        <button id="settings-btn" class="btn-secondary" title="设置昵称">昵称</button>
+        <button id="join-channel-btn" class="btn-secondary">加入频道</button>
+        <button id="create-channel-btn" class="btn-primary">创建频道</button>
       </div>
     </div>
     
-    <!-- 频道列表 -->
+    <!-- 所有频道列表 -->
     <div class="channels-section">
-      <h3>活跃频道</h3>
+      <div class="section-header">
+        <h3>所有频道</h3>
+        <div class="header-actions">
+          <span id="server-status" class="server-status" title="服务器连接状态">🔴</span>
+          <button id="sync-data-btn" class="btn-refresh" title="同步数据" onclick="manualSync()">同步</button>
+          <button id="refresh-channels-btn" class="btn-refresh" title="刷新频道列表">刷新</button>
+        </div>
+      </div>
       <div id="channels-list" class="channels-container">
         <!-- 频道列表将在这里动态生成 -->
       </div>
     </div>
-    
-    <div id="posts-list" class="posts-container">
-      <!-- 帖子列表将在这里动态生成 -->
+  </div>
+
+  <!-- 加入频道模态框 -->
+  <div id="channel-modal" class="modal" style="display: none !important;">
+    <div class="modal-content">
+      <h2>加入频道</h2>
+      <input id="modal-channel" placeholder="频道名" autocomplete="off">
+      <input id="modal-password" placeholder="频道密码（如果有）" autocomplete="off" type="password">
+      <button id="modal-join">进入</button>
     </div>
   </div>
 
@@ -57,50 +62,39 @@
   <!-- 创建频道模态框 -->
   <div id="create-channel-modal" class="modal" style="display: none;">
     <div class="modal-content">
-      <h2>创建聊天频道</h2>
+      <h2>创建频道</h2>
       <input id="create-channel-name" placeholder="频道名" autocomplete="off">
-      <input id="create-channel-nick" placeholder="您的昵称" autocomplete="off">
-      <textarea id="create-channel-desc" placeholder="频道描述（可选）..." rows="3"></textarea>
+      <textarea id="create-channel-desc" placeholder="频道描述..." rows="4"></textarea>
+      <input id="create-channel-password" placeholder="频道密码（可选，留空为公开频道）" autocomplete="off" type="password">
       <div class="modal-buttons">
         <button id="create-channel-cancel" class="btn-secondary">取消</button>
-        <button id="create-channel-submit" class="btn-primary">创建并进入</button>
+        <button id="create-channel-submit" class="btn-primary">创建</button>
       </div>
     </div>
   </div>
 
-  <!-- 发帖模态框 -->
-  <div id="post-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <h2>发新帖</h2>
-      <input id="post-channel" placeholder="频道名" autocomplete="off">
-      <input id="post-nick" placeholder="昵称" autocomplete="off">
-      <textarea id="post-content" placeholder="帖子内容..." rows="4"></textarea>
-      <div class="file-upload-area">
-        <input type="file" id="post-image" accept="image/*" style="display: none;">
-        <button id="upload-image-btn" class="btn-secondary">📷 添加图片</button>
-        <div id="image-preview" class="image-preview"></div>
-      </div>
-      <div class="modal-buttons">
-        <button id="post-cancel" class="btn-secondary">取消</button>
-        <button id="post-submit" class="btn-primary">发布</button>
-      </div>
-    </div>
-  </div>
 
   <!-- 聊天界面 -->
-  <div id="chat-page" class="page">
+  <div id="chat-page" class="page" style="display: none;">
+    <div class="chat-header">
+      <h3 id="current-channel">频道名</h3>
+      <div class="chat-actions">
+        <button id="delete-channel-btn" class="btn-danger" style="display: none;">删除频道</button>
+        <button id="back-home" title="返回主页">🏠</button>
+      </div>
+    </div>
     <div id="messages">加载中...</div>
     <div id="input-area">
       <input id="input" placeholder="输入消息...">
       <button id="image-btn" title="发送图片">📷</button>
       <button id="send">发送</button>
-      <button id="switch-channel" title="切换频道">切换</button>
-      <button id="back-home" title="返回主页">🏠</button>
     </div>
   </div>
 
+
   <!-- 隐藏的文件输入 -->
   <input type="file" id="image-input" accept="image/*" style="display: none;">
+
   <script>
     // 立即隐藏模态框，防止显示
     document.addEventListener('DOMContentLoaded', function() {

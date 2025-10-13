@@ -247,6 +247,24 @@ function joinChannelFromList(channelName) {
     return;
   }
   
+  // 查找频道信息
+  const channelInfo = channels.find(channel => channel.name === channelName);
+  
+  if (channelInfo && channelInfo.hasPassword) {
+    // 频道有密码，需要输入密码
+    const password = prompt(`频道 #${channelName} 需要密码，请输入密码：`);
+    if (password === null) {
+      // 用户取消
+      return;
+    }
+    
+    // 验证密码
+    if (password !== channelInfo.password) {
+      alert("密码错误");
+      return;
+    }
+  }
+  
   channel = channelName;
   nick = globalNick;
   localStorage.setItem('sc_last_channel', channel);
@@ -415,6 +433,32 @@ function joinChannelFromPost(channelName, postNick) {
     alert("请先设置全局昵称");
     showSettingsModal();
     return;
+  }
+  
+  // 查找频道创建帖子以获取密码信息
+  const channelPost = posts.find(post => 
+    post.channel === channelName && post.isChannelCreation
+  );
+  
+  // 查找频道信息
+  const channelInfo = channels.find(channel => channel.name === channelName);
+  
+  // 获取密码信息（优先从帖子获取，其次从频道信息获取）
+  const channelPassword = channelPost?.password || channelInfo?.password;
+  
+  if (channelPassword) {
+    // 频道有密码，需要输入密码
+    const password = prompt(`频道 #${channelName} 需要密码，请输入密码：`);
+    if (password === null) {
+      // 用户取消
+      return;
+    }
+    
+    // 验证密码
+    if (password !== channelPassword) {
+      alert("密码错误");
+      return;
+    }
   }
   
   channel = channelName;
@@ -889,7 +933,19 @@ function connect() {
   socket.onopen = () => {
     if (messagesDiv) messagesDiv.innerHTML = "已连接，正在加入频道...";
     try {
-      socket.send(JSON.stringify({ cmd: "join", channel, nick }));
+      // 查找频道密码信息
+      const channelPost = posts.find(post => 
+        post.channel === channel && post.isChannelCreation
+      );
+      const channelInfo = channels.find(ch => ch.name === channel);
+      const channelPassword = channelPost?.password || channelInfo?.password;
+      
+      socket.send(JSON.stringify({ 
+        cmd: "join", 
+        channel, 
+        nick, 
+        password: channelPassword || null 
+      }));
     } catch (e) {
       log("发送 join 失败: " + e.message);
     }

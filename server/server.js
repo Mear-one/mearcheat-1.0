@@ -236,7 +236,10 @@ function getChannelUsers(channel) {
 function handleJoin(ws, data) {
   const { channel, nick, password } = data;
   
+  console.log(`[DEBUG] 用户尝试加入频道:`, { channel, nick, hasPassword: !!password });
+  
   if (!channel || !nick) {
+    console.log(`[DEBUG] 频道名或昵称为空:`, { channel, nick });
     ws.send(JSON.stringify({ 
       cmd: 'warn', 
       text: '频道名和昵称不能为空' 
@@ -249,9 +252,23 @@ function handleJoin(ws, data) {
     post.channel === channel && post.isChannelCreation
   );
   
+  console.log(`[DEBUG] 查找频道创建帖子:`, { 
+    channel, 
+    foundPost: !!channelPost, 
+    hasPassword: !!channelPost?.password,
+    postsCount: posts.length 
+  });
+  
   if (channelPost && channelPost.password) {
     // 频道有密码，需要验证
+    console.log(`[DEBUG] 频道需要密码验证:`, { 
+      channel, 
+      providedPassword: !!password,
+      expectedPassword: channelPost.password 
+    });
+    
     if (!password) {
+      console.log(`[DEBUG] 用户未提供密码`);
       ws.send(JSON.stringify({ 
         cmd: 'warn', 
         text: '该频道需要密码，请输入密码' 
@@ -260,12 +277,18 @@ function handleJoin(ws, data) {
     }
     
     if (password !== channelPost.password) {
+      console.log(`[DEBUG] 密码验证失败:`, { 
+        provided: password, 
+        expected: channelPost.password 
+      });
       ws.send(JSON.stringify({ 
         cmd: 'warn', 
         text: '密码错误' 
       }));
       return;
     }
+    
+    console.log(`[DEBUG] 密码验证成功`);
   }
 
   // 检查昵称是否已存在
@@ -316,6 +339,7 @@ function handleJoin(ws, data) {
   const users = getChannelUsers(channel);
   
   // 发送加入成功消息
+  console.log(`[DEBUG] 发送 onlineSet 消息:`, { channel, nick, usersCount: users.length });
   ws.send(JSON.stringify({
     cmd: 'onlineSet',
     users: users
@@ -333,7 +357,7 @@ function handleJoin(ws, data) {
     text: `欢迎加入频道 #${channel}！`
   }));
 
-  console.log(`用户 ${nick} 加入频道 ${channel}`);
+  console.log(`[DEBUG] 用户 ${nick} 成功加入频道 ${channel}，当前在线 ${users.length} 人`);
 }
 
 // 处理聊天消息

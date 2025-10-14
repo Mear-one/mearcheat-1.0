@@ -85,6 +85,12 @@ SecretChat beta/
 - ✅ 自动记忆频道和昵称
 - ✅ 键盘快捷键支持
 - ✅ 深色主题界面
+- ✅ 图片发送和预览
+- ✅ 论坛式发帖系统
+- ✅ 频道创建和管理
+- ✅ 加密频道支持
+- ✅ 图片拖拽到PS功能
+- ✅ 数据同步和离线支持
 
 ### 服务器功能
 - ✅ WebSocket 实时通信
@@ -92,6 +98,9 @@ SecretChat beta/
 - ✅ 用户会话管理
 - ✅ 心跳保持连接
 - ✅ 昵称冲突检测
+- ✅ 频道密码验证
+- ✅ 帖子存储和管理
+- ✅ 频道自动清理
 - ✅ Docker 容器化部署
 - ✅ Nginx 反向代理
 - ✅ SSL/HTTPS 支持
@@ -116,11 +125,14 @@ SecretChat beta/
 
 ### 客户端发送
 ```javascript
-// 加入频道
-{ cmd: "join", channel: "频道名", nick: "昵称" }
+// 加入频道（支持密码）
+{ cmd: "join", channel: "频道名", nick: "昵称", password: "密码" }
 
 // 发送消息
 { cmd: "chat", text: "消息内容" }
+
+// 发送图片
+{ cmd: "chat", text: "[图片]", image: "data:image/jpeg;base64,..." }
 
 // 心跳包
 { cmd: "ping" }
@@ -130,6 +142,9 @@ SecretChat beta/
 ```javascript
 // 聊天消息
 { cmd: "chat", nick: "发送者", text: "消息内容" }
+
+// 图片消息
+{ cmd: "chat", nick: "发送者", text: "[图片]", image: "data:image/jpeg;base64,..." }
 
 // 系统信息
 { cmd: "info", text: "信息内容" }
@@ -143,6 +158,15 @@ SecretChat beta/
 // 用户加入/离开
 { cmd: "onlineAdd", nick: "用户名" }
 { cmd: "onlineRemove", nick: "用户名" }
+
+// 帖子列表
+{ cmd: "postsList", posts: [...] }
+
+// 新帖子通知
+{ cmd: "newPost", post: {...} }
+
+// 频道删除通知
+{ cmd: "channelDeleted", channel: "频道名" }
 ```
 
 ## 部署选项

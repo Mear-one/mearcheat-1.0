@@ -600,6 +600,16 @@ async function saveChannelPost(post, channelName) {
         // 隐藏模态框
         hideCreateChannelModal();
         
+        // 更新本地数据
+        post.timestamp = new Date().toISOString();
+        post.id = data.post.id || Date.now();
+        post.isChannelCreation = true;
+        posts.unshift(post);
+        localStorage.setItem('sc_posts', JSON.stringify(posts));
+        
+        // 更新频道列表
+        await loadChannels();
+        
         // 记忆用户信息
         localStorage.setItem('sc_last_channel', channelName);
         
@@ -609,7 +619,12 @@ async function saveChannelPost(post, channelName) {
         
         showPage("chat");
         messagesDiv.innerHTML = "";
-        connect();
+        
+        // 延迟连接，确保服务器处理完成
+        setTimeout(() => {
+          connect();
+        }, 1000);
+        
         return;
       }
     }
@@ -620,8 +635,12 @@ async function saveChannelPost(post, channelName) {
   // 降级到本地存储
   post.timestamp = new Date().toISOString();
   post.id = Date.now();
+  post.isChannelCreation = true;
   posts.unshift(post);
   localStorage.setItem('sc_posts', JSON.stringify(posts));
+  
+  // 更新频道列表
+  await loadChannels();
   
   // 隐藏模态框并进入频道
   hideCreateChannelModal();
@@ -631,7 +650,11 @@ async function saveChannelPost(post, channelName) {
   
   showPage("chat");
   if (messagesDiv) messagesDiv.innerHTML = "";
-  connect();
+  
+  // 延迟连接
+  setTimeout(() => {
+    connect();
+  }, 500);
   
   alert('频道已创建（本地模式），其他设备可能无法立即看到');
 }
@@ -941,6 +964,15 @@ function connect() {
       const channelInfo = channels.find(ch => ch.name === channel);
       const channelPassword = channelPost?.password || channelInfo?.password;
       
+      console.log('连接频道调试信息:', {
+        channel,
+        channelPost,
+        channelInfo,
+        channelPassword,
+        postsCount: posts.length,
+        channelsCount: channels.length
+      });
+      
       socket.send(JSON.stringify({ 
         cmd: "join", 
         channel, 
@@ -967,6 +999,7 @@ function connect() {
     let msg;
     try {
       msg = JSON.parse(event.data);
+      console.log('[DEBUG] 收到服务器消息:', msg);
     } catch (e) {
       console.warn("非 JSON 消息:", event.data);
       return;
@@ -1048,6 +1081,7 @@ function connect() {
         break;
       }
       case "onlineSet": {
+        console.log('[DEBUG] 收到 onlineSet 消息，设置 joined = true');
         joined = true;
         const count = (msg.users && msg.users.length) || 0;
         log(`已加入 #${channel}，当前在线 ${count} 人`);
@@ -1104,6 +1138,15 @@ function sendText() {
   }
   if (!joined) {
     log("[info] 还未完成加入频道，稍后再试...");
+    // 如果连接存在但未加入，尝试重新连接
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      console.log('[DEBUG] 连接存在但未加入，尝试重新发送 join 请求');
+      setTimeout(() => {
+        if (!joined) {
+          connect();
+        }
+      }, 2000);
+    }
     return;
   }
   try {
@@ -1382,6 +1425,33 @@ async function updateServerStatus() {
   }
 }
 
+// 诊断函数 - 检查系统状态
+function diagnoseSystem() {
+  console.log('=== 系统诊断 ===');
+  console.log('当前频道:', channel);
+  console.log('当前昵称:', nick);
+  console.log('已加入状态:', joined);
+  console.log('WebSocket状态:', socket ? socket.readyState : 'null');
+  console.log('帖子数量:', posts.length);
+  console.log('频道数量:', channels.length);
+  console.log('全局昵称:', getGlobalNickname());
+  
+  // 测试服务器连接
+  testServerConnection().then(status => {
+    console.log('服务器连接测试结果:', status);
+  });
+  
+  // 检查本地存储
+  console.log('本地存储的频道:', localStorage.getItem('sc_last_channel'));
+  console.log('本地存储的昵称:', localStorage.getItem('sc_last_nick'));
+  console.log('本地存储的全局昵称:', localStorage.getItem('sc_global_nickname'));
+  
+  console.log('=== 诊断完成 ===');
+}
+
+// 将诊断函数暴露到全局，方便在控制台调用
+window.diagnoseSystem = diagnoseSystem;
+
 // 启动时显示主页并加载数据
 // 确保页面显示正确
 setTimeout(async () => {
@@ -1391,6 +1461,11 @@ setTimeout(async () => {
   if (channelsList) {
     channelsList.innerHTML = '<div class="no-channels">正在加载频道...</div>';
   }
+  
+  // 测试服务器连接
+  console.log('启动时测试服务器连接...');
+  const serverStatus = await testServerConnection();
+  console.log('服务器连接状态:', serverStatus);
   
   // 启动数据同步
   startDataSync();

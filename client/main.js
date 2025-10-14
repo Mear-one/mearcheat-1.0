@@ -729,27 +729,9 @@ async function copyImageToClipboard(imageSrc) {
   }
 }
 
-// 显示拖拽提示
+// showDragTip 已禁用（移除 UI 提示）
 function showDragTip() {
-  const tip = document.createElement("div");
-  tip.className = "drag-tip";
-  tip.innerHTML = `
-    <div class="tip-content">
-      <h3>🎨 拖拽到 Photoshop</h3>
-      <p>1. 直接拖拽图片到 PS 画布中</p>
-      <p>2. 或者先保存图片，再在 PS 中打开</p>
-      <p>3. 也可以复制图片后粘贴到 PS</p>
-      <button onclick="document.body.removeChild(this.closest('.drag-tip'))">知道了</button>
-    </div>
-  `;
-  document.body.appendChild(tip);
-  
-  // 3秒后自动关闭
-  setTimeout(() => {
-    if (document.body.contains(tip)) {
-      document.body.removeChild(tip);
-    }
-  }, 5000);
+  // noop: 拖拽到 Photoshop 的提示已被禁用
 }
 
 // 显示发帖模态框
@@ -769,19 +751,78 @@ function hidePostModal() {
   postModal.style.display = "none";
 }
 
+// 压缩图片
+function compressImage(file, maxWidth = 1920, maxHeight = 1080, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // 计算压缩后的尺寸
+      let { width, height } = img;
+      
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width *= ratio;
+        height *= ratio;
+      }
+      
+      // 设置canvas尺寸
+      canvas.width = width;
+      canvas.height = height;
+      
+      // 绘制压缩后的图片
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // 转换为base64
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+      resolve(compressedDataUrl);
+    };
+    
+    img.onerror = () => reject(new Error('图片加载失败'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 // 处理图片上传
-function handleImageUpload(file) {
+async function handleImageUpload(file) {
   if (!file || !file.type.startsWith('image/')) {
     alert('请选择图片文件');
     return;
   }
   
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const imageData = e.target.result;
-    sendImage(imageData);
-  };
-  reader.readAsDataURL(file);
+  // 显示上传进度
+  log("[info] 正在处理图片...");
+  
+  try {
+    // 检查文件大小
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      alert('图片文件过大，请选择小于10MB的图片');
+      return;
+    }
+    
+    // 压缩图片
+    const compressedImageData = await compressImage(file);
+    
+    // 显示压缩完成
+    log("[info] 图片处理完成，正在发送...");
+    
+    // 发送压缩后的图片
+    sendImage(compressedImageData);
+    
+  } catch (error) {
+    log(`[error] 图片处理失败: ${error.message}`);
+    
+    // 降级到原始方法
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageData = e.target.result;
+      sendImage(imageData);
+    };
+    reader.readAsDataURL(file);
+  }
 }
 
 // 发送图片
@@ -797,15 +838,61 @@ function sendImage(imageData) {
   }
   
   try {
-    socket.send(JSON.stringify({ 
-      cmd: "chat", 
-      text: "[图片]", 
-      image: imageData 
-    }));
-    // 移除这里的 logImage 调用，让 WebSocket 消息处理统一处理
+    // 计算图片大小
+    const sizeKB = Math.round(imageData.length * 0.75 / 1024); // Base64编码大约增加33%大小
+    log(`[info] 发送图片中... (${sizeKB}KB)`);
+    
+    // 分块发送大图片
+    const maxChunkSize = 64 * 1024; // 64KB per chunk
+    if (imageData.length > maxChunkSize) {
+      sendImageInChunks(imageData);
+    } else {
+      // 直接发送小图片
+      socket.send(JSON.stringify({ 
+        cmd: "chat", 
+        text: "[图片]", 
+        image: imageData 
+      }));
+      log("[info] 图片发送完成");
+    }
   } catch (e) {
     log("发送图片失败: " + e.message);
   }
+}
+
+// 分块发送大图片
+function sendImageInChunks(imageData) {
+  const chunkSize = 64 * 1024; // 64KB per chunk
+  const totalChunks = Math.ceil(imageData.length / chunkSize);
+  const messageId = Date.now() + Math.random();
+  
+  log(`[info] 大图片分块发送中... (${totalChunks}块)`);
+  
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * chunkSize;
+    const end = Math.min(start + chunkSize, imageData.length);
+    const chunk = imageData.slice(start, end);
+    
+    const message = {
+      cmd: "imageChunk",
+      messageId: messageId,
+      chunkIndex: i,
+      totalChunks: totalChunks,
+      chunk: chunk,
+      isLastChunk: i === totalChunks - 1
+    };
+    
+    if (i === totalChunks - 1) {
+      // 最后一块包含完整信息
+      message.cmd = "chat";
+      message.text = "[图片]";
+      message.image = imageData;
+    }
+    
+    socket.send(JSON.stringify(message));
+  }
+  
+  log("[info] 图片分块发送完成");
 }
 
 // 显示图片消息
@@ -857,10 +944,9 @@ function logImage(sender, imageData) {
   const actions = document.createElement("div");
   actions.className = "image-actions";
   actions.innerHTML = `
-    <button class="action-btn" onclick="viewImage('${imageData}')" title="查看大图">👁️</button>
-    <button class="action-btn" onclick="saveImage('${imageData}', '${sender}')" title="保存图片">💾</button>
-    <button class="action-btn" onclick="copyImageToClipboard('${imageData}')" title="复制图片">📋</button>
-    <button class="action-btn" onclick="showDragTip()" title="拖拽到PS">🎨</button>
+  <button class="action-btn" onclick="viewImage('${imageData}')" title="查看大图">👁️</button>
+  <button class="action-btn" onclick="saveImage('${imageData}', '${sender}')" title="保存图片">💾</button>
+  <button class="action-btn" onclick="copyImageToClipboard('${imageData}')" title="复制图片">📋</button>
   `;
   
   imageContainer.appendChild(img);
@@ -892,12 +978,27 @@ async function publishPost() {
   };
   
   if (imageFile) {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      post.image = e.target.result;
+    try {
+      // 显示处理进度
+      log("[info] 正在处理帖子图片...");
+      
+      // 压缩图片
+      const compressedImageData = await compressImage(imageFile);
+      post.image = compressedImageData;
+      
+      log("[info] 帖子图片处理完成");
       await savePost(post);
-    };
-    reader.readAsDataURL(imageFile);
+    } catch (error) {
+      log(`[error] 帖子图片处理失败: ${error.message}`);
+      
+      // 降级到原始方法
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        post.image = e.target.result;
+        await savePost(post);
+      };
+      reader.readAsDataURL(imageFile);
+    }
   } else {
     await savePost(post);
   }
@@ -999,7 +1100,10 @@ function connect() {
     let msg;
     try {
       msg = JSON.parse(event.data);
-      console.log('[DEBUG] 收到服务器消息:', msg);
+      // 过滤ping消息，避免刷屏
+      if (msg.cmd !== 'ping') {
+        console.log('[DEBUG] 收到服务器消息:', msg);
+      }
     } catch (e) {
       console.warn("非 JSON 消息:", event.data);
       return;
@@ -1016,6 +1120,7 @@ function connect() {
         break;
       }
       case "info": {
+        console.log('[DEBUG] 收到 info 消息:', msg);
         log(`[info] ${msg.text || ""}`);
         break;
       }
@@ -1081,7 +1186,7 @@ function connect() {
         break;
       }
       case "onlineSet": {
-        console.log('[DEBUG] 收到 onlineSet 消息，设置 joined = true');
+        console.log('[DEBUG] 收到 onlineSet 消息，设置 joined = true', msg);
         joined = true;
         const count = (msg.users && msg.users.length) || 0;
         log(`已加入 #${channel}，当前在线 ${count} 人`);

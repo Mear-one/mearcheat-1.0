@@ -17,6 +17,7 @@ const modal = document.getElementById("channel-modal");
 const modalChannel = document.getElementById("modal-channel");
 const modalPassword = document.getElementById("modal-password");
 const modalJoin = document.getElementById("modal-join");
+const modalCancel = document.getElementById("modal-cancel");
 
 // 新功能相关元素
 const homepage = document.getElementById("homepage");
@@ -229,7 +230,7 @@ function createChannelElement(channel) {
       ` : ''}
     </div>
     <div class="channel-actions">
-      <button class="channel-action-btn" onclick="joinChannelFromList('${channel.name}')" title="加入频道">加入频道</button>
+      <button class="channel-action-btn" onclick="joinChannelFromList('${channel.name}')" title="加入频道">加入</button>
       ${isOwner ? `<button class="channel-action-btn delete" onclick="deleteChannel('${channel.name}')" title="删除频道">删除</button>` : ''}
     </div>
   `;
@@ -366,7 +367,7 @@ function createPostElement(post, index) {
     <div class="post-content">${post.content}</div>
     ${post.image ? `<img src="${post.image}" class="post-image" onclick="viewImage('${post.image}')">` : ''}
     <div class="post-actions">
-      <button class="join-channel-btn" onclick="joinChannelFromPost('${post.channel}', '${post.nick}')">加入频道</button>
+      <button class="join-channel-btn" onclick="joinChannelFromPost('${post.channel}', '${post.nick}')">加入</button>
       ${canDelete ? `<button class="delete-post-btn" onclick="deletePost('${post.id}')" title="删除帖子">删除</button>` : ''}
     </div>
   `;
@@ -1132,6 +1133,7 @@ if (switchBtn) {
 }
 
 if (modalJoin) modalJoin.onclick = tryJoin;
+if (modalCancel) modalCancel.onclick = hideModal;
 if (modalChannel) {
   modalChannel.addEventListener("keydown", (e) => {
     if (e.key === "Enter") modalPassword.focus();

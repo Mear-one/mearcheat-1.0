@@ -36,10 +36,13 @@
   <!-- 加入频道模态框 -->
   <div id="channel-modal" class="modal" style="display: none !important;">
     <div class="modal-content">
-      <h2>加入频道</h2>
+      <h2>加入</h2>
       <input id="modal-channel" placeholder="频道名" autocomplete="off">
       <input id="modal-password" placeholder="频道密码（如果有）" autocomplete="off" type="password">
-      <button id="modal-join">进入</button>
+      <div class="modal-buttons">
+        <button id="modal-cancel" class="btn-secondary">取消</button>
+        <button id="modal-join" class="btn-primary">进入</button>
+      </div>
     </div>
   </div>
 
@@ -80,13 +83,13 @@
       <h3 id="current-channel">频道名</h3>
       <div class="chat-actions">
         <button id="delete-channel-btn" class="btn-danger" style="display: none;">删除频道</button>
-        <button id="back-home" title="返回主页">🏠</button>
+        <button id="back-home" title="返回主页">主页</button>
       </div>
     </div>
     <div id="messages">加载中...</div>
     <div id="input-area">
       <input id="input" placeholder="输入消息...">
-      <button id="image-btn" title="发送图片">📷</button>
+      <button id="image-btn" title="发送图片">图片</button>
       <button id="send">发送</button>
     </div>
   </div>

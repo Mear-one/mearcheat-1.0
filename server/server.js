@@ -234,7 +234,7 @@ function getChannelUsers(channel) {
 
 // 处理用户加入频道
 function handleJoin(ws, data) {
-  const { channel, nick } = data;
+  const { channel, nick, password } = data;
   
   if (!channel || !nick) {
     ws.send(JSON.stringify({ 
@@ -242,6 +242,30 @@ function handleJoin(ws, data) {
       text: '频道名和昵称不能为空' 
     }));
     return;
+  }
+
+  // 检查频道是否需要密码验证
+  const channelPost = posts.find(post => 
+    post.channel === channel && post.isChannelCreation
+  );
+  
+  if (channelPost && channelPost.password) {
+    // 频道有密码，需要验证
+    if (!password) {
+      ws.send(JSON.stringify({ 
+        cmd: 'warn', 
+        text: '该频道需要密码，请输入密码' 
+      }));
+      return;
+    }
+    
+    if (password !== channelPost.password) {
+      ws.send(JSON.stringify({ 
+        cmd: 'warn', 
+        text: '密码错误' 
+      }));
+      return;
+    }
   }
 
   // 检查昵称是否已存在

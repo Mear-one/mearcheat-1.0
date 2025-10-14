@@ -20,7 +20,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-width: 260px;
+  min-width: 320px;
 }
 .modal-content h2 {
   margin: 0 0 8px 0;
@@ -109,7 +109,7 @@ body {
   transition: border 0.2s;
 }
 #input:focus {
-  border: 1.5px solid #1473E6;
+  border: 1.5px solid #808080;
 }
 
 button {
@@ -158,9 +158,9 @@ button:hover {
 }
 
 .btn-primary {
-  background: #1473E6;
+  background: #808080;
   color: white;
-  border: none;
+  border: 1px solid #808080;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
@@ -169,7 +169,7 @@ button:hover {
 }
 
 .btn-primary:hover {
-  background: #0D66D0;
+  background: #909090;
 }
 
 .btn-secondary {
@@ -188,7 +188,7 @@ button:hover {
 }
 
 .btn-danger {
-  background: #E34850;
+  background: #808080;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -199,7 +199,7 @@ button:hover {
 }
 
 .btn-danger:hover {
-  background: #D7373F;
+  background: #808080;
 }
 
 /* 帖子列表样式 */
@@ -232,7 +232,7 @@ button:hover {
 
 .post-channel {
   font-weight: 600;
-  color: #4A90E2;
+  color: #808080;
   font-size: 14px;
 }
 
@@ -262,7 +262,7 @@ button:hover {
 }
 
 .join-channel-btn {
-  background: #4A90E2;
+  background: #808080;
   color: white;
   border: none;
   padding: 6px 12px;
@@ -273,11 +273,11 @@ button:hover {
 }
 
 .join-channel-btn:hover {
-  background: #357ABD;
+  background: #808080;
 }
 
 .delete-post-btn {
-  background: #f44336;
+  background: #808080;
   color: white;
   border: none;
   padding: 6px 12px;
@@ -289,7 +289,7 @@ button:hover {
 }
 
 .delete-post-btn:hover {
-  background: #d32f2f;
+  background: #808080;
 }
 
 .post-author {
@@ -353,9 +353,47 @@ button:hover {
 
 .modal-buttons {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  justify-content: center;
+  gap: 12px;
   margin-top: 16px;
+  align-items: center;
+}
+
+.modal-buttons button {
+  width: 80px;
+  height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #666666 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* 模态框输入框样式 */
+.modal-content input,
+.modal-content textarea {
+  background: #404040 !important;
+  color: #E8E8E8 !important;
+  border: 1px solid #555555 !important;
+  border-radius: 3px !important;
+  padding: 8px 10px !important;
+  font-size: 14px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: border 0.2s !important;
+}
+
+.modal-content input:focus,
+.modal-content textarea:focus {
+  border: 1.5px solid #808080 !important;
+}
+
+.modal-content input::placeholder,
+.modal-content textarea::placeholder {
+  color: #999999 !important;
 }
 
 /* 设置界面样式 */
@@ -635,12 +673,12 @@ button:hover {
 
 .channel-item:hover {
   background: #4A4A4A;
-  border-color: #1473E6;
+  border-color: #808080;
   box-shadow: 0 2px 8px rgba(20, 115, 230, 0.1);
 }
 
 .channel-name {
-  color: #1473E6;
+  color: #808080;
   font-weight: 500;
   font-size: 14px;
 }
@@ -698,7 +736,7 @@ button:hover {
 }
 
 .channel-action-btn {
-  background: #1473E6;
+  background: #808080;
   border: none;
   color: white;
   font-size: 12px;
@@ -709,15 +747,15 @@ button:hover {
 }
 
 .channel-action-btn:hover {
-  background: #0D66D0;
+  background: #808080;
 }
 
 .channel-action-btn.delete {
-  background: #E34850;
+  background: #808080;
 }
 
 .channel-action-btn.delete:hover {
-  background: #D7373F;
+  background: #808080;
 }
 
 .no-channels {

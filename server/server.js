@@ -16,10 +16,15 @@ const wss = new WebSocket.Server({
 const channels = new Map(); // channel -> Set of users
 const userSessions = new Map(); // ws -> {nick, channel}
 const channelOwners = new Map(); // channel -> owner nick
+const channelTimeouts = new Map(); // channel -> timeout ID
 
 // 存储帖子信息
 const posts = []; // 存储所有帖子
 const MAX_POSTS = 100; // 最大帖子数量
+
+// 频道配置
+const CHANNEL_IDLE_TIMEOUT = 6 * 60 * 60 * 1000; // 6小时（毫秒）
+const PERIODIC_CLEANUP_INTERVAL = 6 * 60 * 60 * 1000; // 6小时定期清理（毫秒）
 
 // 添加CORS支持
 app.use((req, res, next) => {
@@ -168,15 +173,7 @@ app.delete('/api/channels/:channelName', (req, res) => {
   }
   
   // 删除频道
-  channels.delete(channelName);
-  channelOwners.delete(channelName);
-  
-  // 删除相关帖子（包括描述帖子和聊天帖子）
-  const channelPosts = posts.filter(post => post.channel === channelName);
-  channelPosts.forEach(() => {
-    const index = posts.findIndex(post => post.channel === channelName);
-    if (index !== -1) posts.splice(index, 1);
-  });
+  deleteChannel(channelName);
   
   // 广播频道删除消息
   broadcastToAll({
@@ -230,6 +227,69 @@ function getChannelUsers(channel) {
     .filter(ws => ws.readyState === WebSocket.OPEN)
     .map(ws => userSessions.get(ws)?.nick)
     .filter(nick => nick);
+}
+
+// 删除频道的辅助函数
+function deleteChannel(channelName) {
+  console.log(`[DEBUG] 删除频道: ${channelName}`);
+  
+  // 清除定时器
+  const timeoutId = channelTimeouts.get(channelName);
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+    channelTimeouts.delete(channelName);
+  }
+  
+  // 删除频道
+  channels.delete(channelName);
+  channelOwners.delete(channelName);
+  
+  // 删除相关帖子（包括描述帖子和聊天帖子）
+  const channelPosts = posts.filter(post => post.channel === channelName);
+  channelPosts.forEach(() => {
+    const index = posts.findIndex(post => post.channel === channelName);
+    if (index !== -1) posts.splice(index, 1);
+  });
+  
+  // 广播频道自动删除消息
+  broadcastToAll({
+    cmd: 'channelAutoDeleted',
+    channel: channelName
+  });
+  
+  console.log(`频道 ${channelName} 已删除`);
+}
+
+// 设置频道空闲定时器
+function setChannelIdleTimer(channelName) {
+  // 清除现有定时器
+  const existingTimeout = channelTimeouts.get(channelName);
+  if (existingTimeout) {
+    clearTimeout(existingTimeout);
+    console.log(`[DEBUG] 清除频道 ${channelName} 的现有定时器`);
+  }
+  
+  // 设置新的定时器
+  const timeoutId = setTimeout(() => {
+    console.log(`[TIMEOUT] 频道 ${channelName} 空闲超时，开始删除...`);
+    deleteChannel(channelName);
+  }, CHANNEL_IDLE_TIMEOUT);
+  
+  channelTimeouts.set(channelName, timeoutId);
+  const hours = CHANNEL_IDLE_TIMEOUT / 1000 / 60 / 60;
+  console.log(`[DEBUG] 设置频道 ${channelName} 空闲定时器，${hours}小时后删除 (定时器ID: ${timeoutId})`);
+}
+
+// 清除频道空闲定时器
+function clearChannelIdleTimer(channelName) {
+  const timeoutId = channelTimeouts.get(channelName);
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+    channelTimeouts.delete(channelName);
+    console.log(`[DEBUG] 清除频道 ${channelName} 的空闲定时器 (定时器ID: ${timeoutId})`);
+  } else {
+    console.log(`[DEBUG] 频道 ${channelName} 没有活跃的定时器需要清除`);
+  }
 }
 
 // 处理用户加入频道
@@ -315,7 +375,8 @@ function handleJoin(ws, data) {
     if (oldChannelUsers) {
       oldChannelUsers.delete(ws);
       if (oldChannelUsers.size === 0) {
-        channels.delete(oldChannel);
+        // 频道无人时，设置空闲定时器而不是立即删除
+        setChannelIdleTimer(oldChannel);
       } else {
         // 通知其他用户该用户离开
         broadcastToChannel(oldChannel, {
@@ -331,6 +392,9 @@ function handleJoin(ws, data) {
     channels.set(channel, new Set());
     // 记录频道创建者
     channelOwners.set(channel, nick);
+  } else {
+    // 如果频道存在，清除空闲定时器（因为有人加入了）
+    clearChannelIdleTimer(channel);
   }
   channels.get(channel).add(ws);
   userSessions.set(ws, { nick, channel });
@@ -340,10 +404,12 @@ function handleJoin(ws, data) {
   
   // 发送加入成功消息
   console.log(`[DEBUG] 发送 onlineSet 消息:`, { channel, nick, usersCount: users.length });
-  ws.send(JSON.stringify({
+  const onlineSetMessage = JSON.stringify({
     cmd: 'onlineSet',
     users: users
-  }));
+  });
+  console.log(`[DEBUG] onlineSet 消息内容:`, onlineSetMessage);
+  ws.send(onlineSetMessage);
 
   // 通知其他用户新用户加入
   broadcastToChannel(channel, {
@@ -352,10 +418,12 @@ function handleJoin(ws, data) {
   }, ws);
 
   // 发送欢迎消息
-  ws.send(JSON.stringify({
+  const welcomeMessage = JSON.stringify({
     cmd: 'info',
     text: `欢迎加入频道 #${channel}！`
-  }));
+  });
+  console.log(`[DEBUG] 发送欢迎消息:`, welcomeMessage);
+  ws.send(welcomeMessage);
 
   console.log(`[DEBUG] 用户 ${nick} 成功加入频道 ${channel}，当前在线 ${users.length} 人`);
 }
@@ -451,24 +519,8 @@ wss.on('connection', (ws, req) => {
       if (channelUsers) {
         channelUsers.delete(ws);
         if (channelUsers.size === 0) {
-          // 频道无人时自动删除
-          channels.delete(channel);
-          channelOwners.delete(channel);
-          
-          // 删除相关帖子（包括描述帖子和聊天帖子）
-          const channelPosts = posts.filter(post => post.channel === channel);
-          channelPosts.forEach(() => {
-            const index = posts.findIndex(post => post.channel === channel);
-            if (index !== -1) posts.splice(index, 1);
-          });
-          
-          // 广播频道自动删除消息
-          broadcastToAll({
-            cmd: 'channelAutoDeleted',
-            channel: channel
-          });
-          
-          console.log(`频道 ${channel} 无人，已自动删除`);
+          // 频道无人时，设置空闲定时器而不是立即删除
+          setChannelIdleTimer(channel);
         } else {
           // 通知其他用户该用户离开
           broadcastToChannel(channel, {
@@ -494,6 +546,7 @@ server.listen(PORT, () => {
   console.log(`Secret Chat 服务器启动成功！`);
   console.log(`WebSocket地址: ws://localhost:${PORT}/chat-ws`);
   console.log(`HTTP地址: http://localhost:${PORT}`);
+  console.log(`频道空闲超时设置: ${CHANNEL_IDLE_TIMEOUT / 1000 / 60 / 60}小时`);
   console.log(`按 Ctrl+C 停止服务器`);
 });
 
